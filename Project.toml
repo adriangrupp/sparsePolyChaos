@@ -1,0 +1,4 @@
+name = "sparsePolyChaos"
+uuid = "b14ff7f8-8c6a-417b-bc18-4148be3220ad"
+authors = ["Adrian Grupp <adrian.grupp@posteo.net>"]
+version = "0.1.0"
