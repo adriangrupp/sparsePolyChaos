@@ -1,4 +1,3 @@
-using Base: Float64
 ## This is an example on the usage of PolyChaos for non-intrusive PCE using
 ## the projection and the regression approach and a comarison of them in a multi-
 ## variate setting.
