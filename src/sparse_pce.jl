@@ -1,3 +1,5 @@
+export sparsePCE
+
 # TODO: Overfitting: strategy for overfitting
 # TODO: multiple dispatch for bases on arbitrary weight functions
 
@@ -131,7 +133,7 @@ olsModel = OLSModel(op1, model)
 # Compute a sparse basis for the provided pce model and parameters
 # Parameters:
 #   * op: The full candidate orthogonal basis
-function sparsePCE(op::AbstractOrthoPoly, modelFun::Function; Q²tgt = .99999, pMax = 10, jMax = 5)
+function sparsePCE(op::AbstractOrthoPoly, modelFun::Function; Q²tgt = .999, pMax = 10, jMax = 5)
     # Parameter specification
     pMax = min(op.deg, pMax)    # pMax can be at most size of given full basis
     COND = 1e4                  # Maximum allowed matrix condition number (see Blatman2010)
@@ -159,6 +161,7 @@ function sparsePCE(op::AbstractOrthoPoly, modelFun::Function; Q²tgt = .99999, p
         p = 0
         Ap = [0] # Zero element
         Φ = [ evaluate(j, X[i], op) for i = 1:sampleSize, j in Ap ]
+        # Φ = [ evaluate(j, X, op) for j in Ap ] # TODO
         pce = leastSquares(Φ, Y)
         R² = 1 - empError(Y, Φ, pce)
         Q² = 1 - looError(Y, Φ, pce)
@@ -167,13 +170,13 @@ function sparsePCE(op::AbstractOrthoPoly, modelFun::Function; Q²tgt = .99999, p
         println("Q²: $Q²")
 
         # Main loop: Iterate max degree p
-        while Q² ≤ Q²tgt && p ≤ pMax
+        while Q² ≤ Q²tgt && p ≤ pMax && !restart
             p += 1  # current max degree
             j = 0   # number of allowed interactions
             
             # Iterate number of interactions j
             jM = min(p, jMax) # p limits #interactions
-            while Q² ≤ Q²tgt && j < jM
+            while Q² ≤ Q²tgt && j < jM && !restart
                 j += 1
                 J = [] # Temporary store potential new basis elements
                 candidates = [p] # FUTURE: this needs to capture all current multi indices. ALso need to change from indices to objects (?)
@@ -207,8 +210,8 @@ function sparsePCE(op::AbstractOrthoPoly, modelFun::Function; Q²tgt = .99999, p
                     # Increase experimental design and restart computations
                     restart = true
                     k = 3 # rescale factor according to Blatman
-                    println("Moments matrix is ill-conditioned. Restart computation with new sample size: $(k * length(Ap_new)) (Old size: $sampleSize)")
-                    sampleSize = k * length(Ap_new)  # TODO: build properly
+                    println("Moments matrix is ill-conditioned. Restart computation with new sample size: $(k * sampleSize)) (Old size: $sampleSize)")
+                    sampleSize *= k   # TODO: build properly
                     X = sampleMeasure(sampleSize, op)
                     Y = modelFun.(X) # TODO: Reuse old ED data, this part is very expensive!
                 else
