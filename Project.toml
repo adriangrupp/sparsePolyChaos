@@ -2,3 +2,7 @@ name = "sparsePolyChaos"
 uuid = "b14ff7f8-8c6a-417b-bc18-4148be3220ad"
 authors = ["Adrian Grupp <adrian.grupp@posteo.net>"]
 version = "0.1.0"
+
+[deps]
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+PolyChaos = "8d666b04-775d-5f6e-b778-5ac7c70f65a3"
