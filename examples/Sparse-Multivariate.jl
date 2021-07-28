@@ -1,5 +1,5 @@
 using sparsePolyChaos
-using PolyChaos # ?????
+using PolyChaos
 
 ###
 ### Multivariate sparse PCE

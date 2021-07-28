@@ -1,5 +1,5 @@
-export empError, 
-       looError
+ export empError, 
+        looError
 
 # Normalized empirical error / generalization error (Blatman2009 - Dissertation)
 # nemError ∈ [0,1]

@@ -3,9 +3,6 @@ export sparsePCE
 # TODO: Overfitting: strategy for overfitting
 # TODO: multiple dispatch for bases on arbitrary weight functions
 
-using LinearAlgebra: diag, cond
-include("error_estimation.jl")
-
 
 # Univariate adaptive basis algo
 # Arguments:
