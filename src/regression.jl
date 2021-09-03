@@ -15,15 +15,15 @@ function leastSquares(Φ::AbstractMatrix{<:Real}, Y::AbstractVector{<:Real})
     
     coefficients = zeros(size(Y))
 
-    condition = cond(Φ) # Matrix condition number
+    condition = 1/cond(Φ) # Matrix condition number
     
     # Fastest, but least accurate (squares condition number)
-    if condition < 1e6
-        ΦTΦ = Φ' * Φ
-        coefficients = ΦTΦ \ (Φ' * Y)
+    # if condition < 1e6
+    #     ΦTΦ = Φ' * Φ
+    #     coefficients = ΦTΦ \ (Φ' * Y)
     
     # (Much) more precise but ~ twice as slow
-    elseif condition < eps()
+    if condition > eps()
         coefficients = Φ \ Y
 
     # Slowest, but best precision for very ill-conditioned matrices. For better conditioned matrices it is not as good as other methods. 
