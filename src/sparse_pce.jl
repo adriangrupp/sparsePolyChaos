@@ -129,8 +129,9 @@ olsModel = OLSModel(op1, model)
 
 # Compute a sparse basis for the provided pce model and parameters
 # Parameters:
+# * sampleFun: user provided sampling method
 #   * op: The full candidate orthogonal basis
-function sparsePCE(op::AbstractOrthoPoly, modelFun::Function; Q²tgt = .999, pMax = 10, jMax = 5)
+function sparsePCE(op::AbstractOrthoPoly, modelFun::Function, sampleFun::Function; Q²tgt = .999, pMax = 10, jMax = 1)
     # Parameter specification
     pMax = min(op.deg, pMax)    # pMax can be at most size of given full basis
     COND = 1e4                  # Maximum allowed matrix condition number (see Blatman2010)
@@ -146,7 +147,8 @@ function sparsePCE(op::AbstractOrthoPoly, modelFun::Function; Q²tgt = .999, pMa
 
     # 1. Build initial ED, compute Y
     sampleSize = pMax * 20 # TODO: How to determine?
-    X = sampleMeasure(sampleSize, op)
+    # X = sampleMeasure(sampleSize, op)
+    X = sampleFun(sampleSize)
     Y = modelFun.(X) # This is the most expensive part
     
     restart = true
@@ -209,7 +211,8 @@ function sparsePCE(op::AbstractOrthoPoly, modelFun::Function; Q²tgt = .999, pMa
                     k = 3 # rescale factor according to Blatman
                     println("Moments matrix is ill-conditioned. Restart computation with new sample size: $(k * sampleSize)) (Old size: $sampleSize)")
                     sampleSize *= k   # TODO: build properly
-                    X = sampleMeasure(sampleSize, op)
+                    # X = sampleMeasure(sampleSize, op)
+                    X = sampleFun(sampleSize)
                     Y = modelFun.(X) # TODO: Reuse old ED data, this part is very expensive!
                 else
                 #     # If conditioning is okay, update accuracy R² for backward step
@@ -256,13 +259,21 @@ function sparsePCE(op::AbstractOrthoPoly, modelFun::Function; Q²tgt = .999, pMa
     end
     
     if Q² < Q²tgt
-        println("Computation reached max degree $pMax. However, accuracy is below target with Q² = $(Q²).")
+        error("Computation reached max degree $pMax. However, accuracy is below target with Q² = $(Q²).")
     else
         println("Computation reached target accuracy with Q² = $(Q²) and max degree $p")
+        return pce, Ap, p, R², Q²
     end
-
-    return pce, Ap, p, R², Q²
 end
+
+
+# sparsePCE with default sampling method
+function sparsePCE(op::AbstractOrthoPoly, modelFun::Function; Q²tgt = .999, pMax = 10, jMax = 1)
+    sampleFun(sampleSize) = sampleMeasure(sampleSize, op)
+    sparsePCE(op, modelFun, sampleFun; Q²tgt, pMax, jMax)
+end
+
+
 
 function testFun(modelFun, deg, range; sampleSize = deg *2)
     op = GaussOrthoPoly(deg)
