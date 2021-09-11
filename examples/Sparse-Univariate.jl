@@ -9,8 +9,8 @@ interactions = 1
 # σ = 1
 # model(x) = exp(μ + σ * x)
 # model(x) = x^7 - 21 * x^5 + 105 * x^3 - 105 * x + x^4 - 6 * x^2 + 3 # He7 + He4
-model(x) = x^4 - 3* x^2 
-# model(x) = x^10 - 45 * x^8 + 630 * x^6 - 3150 * x^4 + 4725 * x^2 - 945
+# model(x) = x^4 - 3* x^2 
+model(x) = x^10 - 45 * x^8 + 630 * x^6 - 3150 * x^4 + 4725 * x^2 - 945 # He10. Bad conditioning: Restart needed until sample size = 1800
 # model(x) = 0
 
 
@@ -19,46 +19,46 @@ op = GaussOrthoPoly(maxDeg)
 
 
 ## Compute sparse PCE solution
-pce, Ap, p, R², Q² = sparsePCE(op, model; pMax = maxDeg, jMax = interactions)
+pce = sparsePCE(op, model; pMax = maxDeg, jMax = interactions)
 
-println("Basis polynomials: ", Ap)
-println("PCE coefficients: ", pce)
+println("Basis polynomials: ", pce[:Ap])
+println("PCE coefficients: ", pce[:coeffs])
 # println("Max degree:: ", p)
-println("R² error: ", R²)
-println("Q² error: ", Q²)
+println("R² error: ", pce[:R²])
+println("Q² error: ", pce[:Q²])
 
 
 
-## Sparse PCE with custom sampling method
+# ## Sparse PCE with custom sampling method
 
-println("\n\n== Sparse PCE with custom sampling method ==")
-function sampleFromGaussianMixture(n::Int,μ::Vector{},σ::Vector{},w::Vector{})
-    X = Float64[]
-    for i in 1:n
-        k = findfirst(x -> x > rand(), cumsum(w))
-        push!(X, μ[k] + σ[k]*randn())
-    end
-    return X
-end
+# println("\n\n== Sparse PCE with custom sampling method ==")
+# function sampleFromGaussianMixture(n::Int,μ::Vector{},σ::Vector{},w::Vector{})
+#     X = Float64[]
+#     for i in 1:n
+#         k = findfirst(x -> x > rand(), cumsum(w))
+#         push!(X, μ[k] + σ[k]*randn())
+#     end
+#     return X
+# end
 
-function ρ_gauss(x,μ,σ)
-    1 / sqrt(2*π*σ^2) * exp(-(x - μ)^2 / (2σ^2))
-end
+# function ρ_gauss(x,μ,σ)
+#     1 / sqrt(2*π*σ^2) * exp(-(x - μ)^2 / (2σ^2))
+# end
 
 
-μ, σ, w = [2.1, 3.2], [0.3, 0.4], [0.3, 0.7]
-ρ(x) = sum( w[i]*ρ_gauss(x,μ[i],σ[i]) for i in 1:length(w) )
-meas = Measure("my_GaussMixture", ρ, (-Inf,Inf), false, Dict(:μ=>μ,:σ=>σ,:w=>w)) # build measure
-op_gm = OrthoPoly("my_op",maxDeg,meas;Nquad=150,Nrec = 5*maxDeg, discretization=stieltjes) # construct orthogonal polynomial
+# μ, σ, w = [2.1, 3.2], [0.3, 0.4], [0.3, 0.7]
+# ρ(x) = sum( w[i]*ρ_gauss(x,μ[i],σ[i]) for i in 1:length(w) )
+# meas = Measure("my_GaussMixture", ρ, (-Inf,Inf), false, Dict(:μ=>μ,:σ=>σ,:w=>w)) # build measure
+# op_gm = OrthoPoly("my_op",maxDeg,meas;Nquad=150,Nrec = 5*maxDeg, discretization=stieltjes) # construct orthogonal polynomial
 
-sampleFun(sampleSize) = sampleFromGaussianMixture(sampleSize,μ,σ,w)
-pce, Ap, p, R², Q² = sparsePCE(op_gm, model, sampleFun; pMax = maxDeg)
+# sampleFun(sampleSize) = sampleFromGaussianMixture(sampleSize,μ,σ,w)
+# pce = sparsePCE(op_gm, model, sampleFun; pMax = maxDeg)
 
-println("Basis polynomials: ", Ap)
-println("PCE coefficients: ", pce)
-# println("Max degree:: ", p)
-println("R² error: ", R²)
-println("Q² error: ", Q²)
+# println("Basis polynomials: ", pce[:Ap])
+# println("PCE coefficients: ", pce[:coeffs])
+# # println("Max degree:: ", pce[:p])
+# println("R² error: ", pce[:R²])
+# println("Q² error: ", pce[:Q²])
 
 
 #TODO: Comparison to monte carlo 

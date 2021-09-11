@@ -137,6 +137,7 @@ function sparsePCE(op::AbstractOrthoPoly, modelFun::Function, sampleFun::Functio
     COND = 1e4                  # Maximum allowed matrix condition number (see Blatman2010)
     α = 0.001                   # Tuning parameter (see Blatman2010)
     ϵ = α * (1 - Q²tgt)         # Error threshold of coefficients
+    sampleSize = pMax * 20      # TODO: How to determine?
 
     # Initilaize basis and determination coefficients
     p = 0       # current degree
@@ -145,11 +146,6 @@ function sparsePCE(op::AbstractOrthoPoly, modelFun::Function, sampleFun::Functio
     Q² = 0.0    # leave-one out coefficient determination 
     pce = []    # pce coefficients
 
-    # 1. Build initial ED, compute Y
-    sampleSize = pMax * 20 # TODO: How to determine?
-    # X = sampleMeasure(sampleSize, op)
-    X = sampleFun(sampleSize)
-    Y = modelFun.(X) # This is the most expensive part
     
     #TODO: for each y compute sparse pce and collect output
     # restore properties after each loop
@@ -159,6 +155,10 @@ function sparsePCE(op::AbstractOrthoPoly, modelFun::Function, sampleFun::Functio
     while restart
         restart = false
 
+        # 1. Build current ED, compute Y
+        X = sampleFun(sampleSize)
+        Y = modelFun.(X) # TODO: Reuse old ED data, this part is very expensive!
+       
         # 2. Initialize loop
         p = 0
         Ap = [0] # Zero element
@@ -215,8 +215,6 @@ function sparsePCE(op::AbstractOrthoPoly, modelFun::Function, sampleFun::Functio
                     println("Moments matrix is ill-conditioned. Restart computation with new sample size: $(k * sampleSize)) (Old size: $sampleSize)")
                     sampleSize *= k   # TODO: build properly
                     # X = sampleMeasure(sampleSize, op)
-                    X = sampleFun(sampleSize)
-                    Y = modelFun.(X) # TODO: Reuse old ED data, this part is very expensive!
                 else
                 #     # If conditioning is okay, update accuracy R² for backward step
                     # Φ = [ evaluate(j, X[i], op) for i = 1:sampleSize, j in Ap_new]
@@ -263,7 +261,7 @@ function sparsePCE(op::AbstractOrthoPoly, modelFun::Function, sampleFun::Functio
         error("Computation reached max degree $pMax. However, accuracy is below target with Q² = $(Q²).")
     else
         println("Computation reached target accuracy with Q² = $(Q²) and max degree $p")
-        return Dict(:pce=>pce,
+        return Dict(:coeffs=>pce,
                     :Ap=>Ap,
                     :p=>p,
                     :R²=>R²,
