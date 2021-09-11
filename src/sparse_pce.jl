@@ -151,16 +151,19 @@ function sparsePCE(op::AbstractOrthoPoly, modelFun::Function, sampleFun::Functio
     X = sampleFun(sampleSize)
     Y = modelFun.(X) # This is the most expensive part
     
+    #TODO: for each y compute sparse pce and collect output
+    # restore properties after each loop
+    # in case of not reaching Q²_tgt do ???
     restart = true
     # Outer loop: Iterate on experimental design
     while restart
         restart = false
-        
+
         # 2. Initialize loop
         p = 0
         Ap = [0] # Zero element
         Φ = [ evaluate(j, X[i], op) for i = 1:sampleSize, j in Ap ]
-        # Φ = [ evaluate(j, X, op) for j in Ap ] # TODO
+        # Φ = [ evaluate(j, X, op) for j in Ap ] # TODO does this also work?
         pce = leastSquares(Φ, Y)
         R² = 1 - empError(Y, Φ, pce)
         Q² = 1 - looError(Y, Φ, pce)
@@ -172,7 +175,7 @@ function sparsePCE(op::AbstractOrthoPoly, modelFun::Function, sampleFun::Functio
         while Q² ≤ Q²tgt && p ≤ pMax && !restart
             p += 1  # current max degree
             j = 0   # number of allowed interactions
-            
+
             # Iterate number of interactions j
             jM = min(p, jMax) # p limits #interactions
             while Q² ≤ Q²tgt && j < jM && !restart
@@ -220,8 +223,8 @@ function sparsePCE(op::AbstractOrthoPoly, modelFun::Function, sampleFun::Functio
                     pce = leastSquares(Φ, Y)
                     R² = 1 - empError(Y, Φ, pce)
                 end
-                    
-                
+
+
                 # Backward step: Remove candidate polynomials one by one and compute the effect on Q²
                 if !restart 
                     println("Ap_new: ", Ap_new)
@@ -233,7 +236,7 @@ function sparsePCE(op::AbstractOrthoPoly, modelFun::Function, sampleFun::Functio
                         Φ = [ evaluate(j, X[i], op) for i = 1:sampleSize, j in A]
                         pce = leastSquares(Φ, Y)
                         R²new = 1 - empError(Y, Φ, pce)
-                        
+
                         # If decrease in accuracy is too small, throw polynomial away
                         ΔR² = R² - R²new
                         if ΔR² ≤ ϵ
@@ -251,18 +254,20 @@ function sparsePCE(op::AbstractOrthoPoly, modelFun::Function, sampleFun::Functio
                     Q² = 1 - looError(Y, Φ, pce)
                     println("Q² (p=$p, j=$j): ", Q²)
                 end
-
             end
             println()
         end
-    
     end
     
     if Q² < Q²tgt
         error("Computation reached max degree $pMax. However, accuracy is below target with Q² = $(Q²).")
     else
         println("Computation reached target accuracy with Q² = $(Q²) and max degree $p")
-        return pce, Ap, p, R², Q²
+        return Dict(:pce=>pce,
+                    :Ap=>Ap,
+                    :p=>p,
+                    :R²=>R²,
+                    :Q²=>Q²)
     end
 end
 
@@ -270,7 +275,7 @@ end
 # sparsePCE with default sampling method
 function sparsePCE(op::AbstractOrthoPoly, modelFun::Function; Q²tgt = .999, pMax = 10, jMax = 1)
     sampleFun(sampleSize) = sampleMeasure(sampleSize, op)
-    sparsePCE(op, modelFun, sampleFun; Q²tgt, pMax, jMax)
+    return sparsePCE(op, modelFun, sampleFun; Q²tgt, pMax, jMax)
 end
 
 
@@ -295,6 +300,7 @@ function testFun(modelFun, deg, range; sampleSize = deg *2)
     println("Q²0: ", Q²0)
     ###
 end
+
 
 
 #################################
