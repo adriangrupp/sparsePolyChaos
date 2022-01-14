@@ -7,14 +7,14 @@ function empError(Y::Vector{Float64}, Φ::Matrix{Float64}, pceCoeffs; adjusted =
     @assert length(Y) > 0           "Empty results vector Y"
     @assert length(Y) == size(Φ, 1) "Inconsistent number of elements"
     # TODO: Require column vectors
-
+    
     # Compute PCE model response
     Y_Pce = Φ * pceCoeffs
     
     # Empirical variance of sampling evaluation (true model)
     n = length(Y)
-    varY = n > 1 ? 1/(n-1) * sum( (Y[i] - mean(Y))^2 for i in 1:n ) : 0
-
+    varY = n > 1 ? 1/(n-1) * sum( (Y[i] - mean(Y))^2 for i in 1:n ) : 0 # FIX: In case of one single sample this always results in a 100% fit
+    
     # Empirical error
     empError = 1/n * sum( (Y[i] - Y_Pce[i])^2 for i in 1:n )
     
@@ -25,7 +25,7 @@ function empError(Y::Vector{Float64}, Φ::Matrix{Float64}, pceCoeffs; adjusted =
         # empError = (n-1) / (n - p - 1) * ( empError)
     end
 
-    # Normalize with variance
+    # Normalize with variance FIX: s.o.
     nempError = varY == 0 ? 0 : empError / varY
 
     return nempError

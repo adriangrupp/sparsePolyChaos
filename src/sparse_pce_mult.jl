@@ -3,7 +3,7 @@ export sparsePCE
 # Compute a sparse basis for the provided pce model and parameters
 # Parameters:
 #   * op: The full candidate orthogonal basis
-function sparsePCE(mop::MultiOrthoPoly, modelFun::Function; Q²tgt = .999, pMax = 10, jMax = 5)
+function sparsePCE(mop::MultiOrthoPoly, modelFun::Function; Q²tgt=.999, pMax=10, jMax=5)
     # Parameter specification
     pMax = min(mop.deg, pMax)   # pMax can be at most size of given full basis
     dim = length(mop.uni)       # basis dimension
@@ -138,9 +138,9 @@ function sparsePCE(mop::MultiOrthoPoly, modelFun::Function; Q²tgt = .999, pMax 
     end
     
     if Q² < Q²tgt
-        println("Computation reached max degree $pMax. However, accuracy is below target with Q² = $(Q²).")
+        println("Computation reached max degree $pMax. However, accuracy is below target with Q² = $(Q²). \n")
     else
-        println("Computation reached target accuracy with Q² = $(Q²) and max degree $p")
+        println("Computation reached target accuracy with Q² = $(Q²) and degree $p \n")
     end
 
     return pce, Ap, p, R², Q²
