@@ -216,8 +216,7 @@ function sparsePCE(op::AbstractOrthoPoly, modelFun::Function, sampleFun::Functio
                     sampleSize *= k   # TODO: build properly
                     # X = sampleMeasure(sampleSize, op)
                 else
-                #     # If conditioning is okay, update accuracy R² for backward step
-                    # Φ = [ evaluate(j, X[i], op) for i = 1:sampleSize, j in Ap_new]
+                    # If conditioning is okay, update accuracy R² for backward step
                     pce = leastSquares(Φ, Y)
                     R² = 1 - empError(Y, Φ, pce)
                 end
@@ -298,6 +297,155 @@ function testFun(modelFun, deg, range; sampleSize = deg *2)
     println("Q²0: ", Q²0)
     ###
 end
+
+
+
+# SPARSE ALGO FOR VECTOR-VLAUED MODEL RESPONSES
+# Parameters:
+# * sampleFun: user provided sampling method
+#   * op: The full candidate orthogonal basis
+function sparsePCE_vec(op::AbstractOrthoPoly, modelFun::Function, sampleFun::Function; Q²tgt = .999, pMax = 10, jMax = 1)
+    # Parameter specification
+    pMax = min(op.deg, pMax)    # pMax can be at most size of given full basis
+    COND = 1e4                  # Maximum allowed matrix condition number (see Blatman2010)
+    α = 0.001                   # Tuning parameter (see Blatman2010)
+    ϵ = α * (1 - Q²tgt)         # Error threshold of coefficients
+    sampleSize = pMax * 20      # Initial sample size for ED TODO: How to determine?
+   
+    
+    # Main loop
+    restart = true
+    while restart
+        restart = false
+        
+        # 1. Build initial ED, compute Y
+        X = sampleFun(sampleSize)
+        Y = modelFun.(X) # This is the most expensive part
+        
+        # Outer loop: Iterate over every ED vector.
+        #TODO: sotre output for each y
+        # restore properties after each loop
+        # in case of not reaching Q²_tgt do ???
+        # bad conditioning
+        while !isempty(Y) && !restart
+            y = popfirst!(Y)
+            
+            # Initilaize basis and determination coefficients TODO: wehere?
+            p = 0       # current degree
+            Ap = [0]    # set of basis indices for current degree
+            R² = 0.0    # coefficient of determination
+            Q² = 0.0    # leave-one out coefficient determination 
+            pce = []    # current pce coefficients
+            
+            # 2. Initialize loop
+            p = 0
+            Ap = [0] # Zero element
+            Φ = [ evaluate(j, X[i], op) for i = 1:sampleSize, j in Ap ]
+            # Φ = [ evaluate(j, X, op) for j in Ap ] # TODO does this also work?
+            pce = leastSquares(Φ, y)
+            R² = 1 - empError(y, Φ, pce)
+            Q² = 1 - looError(y, Φ, pce)
+            println("Intialization:")
+            println("R²: $R²")
+            println("Q²: $Q²")
+
+            # Main loop: Iterate max degree p
+            while Q² ≤ Q²tgt && p ≤ pMax && !restart
+                p += 1  # current max degree
+                j = 0   # number of allowed interactions
+
+                # Iterate number of interactions j
+                jM = min(p, jMax) # p limits #interactions
+                while Q² ≤ Q²tgt && j < jM && !restart
+                    j += 1
+                    J = [] # Temporary store potential new basis elements
+                    candidates = [p] # FUTURE: this needs to capture all current multi indices. ALso need to change from indices to objects (?)
+
+                    # Forward step: compute R² for all candidate terms and keep the relevant ones
+                    for a in candidates
+                        A = Ap ∪ a
+                        Φ = [ evaluate(j, X[i], op) for i = 1:sampleSize, j in A]
+                        pce = leastSquares(Φ, y)
+                        R²new = 1 - empError(y, Φ, pce) # Only need R² error here "due to more efficiency" (Blatman 2010)
+                        println("R² (p=$p, j=$j): ", R²)
+
+                        # Compute accuracy gain. If high enough, add cadidate polynomial
+                        ΔR² = R²new - R²
+                        # println("ΔR²: $ΔR² \t ϵ: $ϵ")
+                        if ΔR² > ϵ
+                            J = J ∪ a
+                        end
+                    end
+                    println("Candidates after forward step: $J")
+
+                    # FUTURE: Sort Jp and ΦJ according to ΔR² <- why?
+                    # J = sort(J)
+                    # R = []
+
+                    # Conditioning Check: If resulting enriched basis does not yield a well-conditioned moments matrix, we have to restart
+                    Ap_new = Ap ∪ J
+                    Φ = [ evaluate(j, X[i], op) for i = 1:sampleSize, j in Ap_new]
+                    # Check Φ
+                    if cond(Φ) > COND 
+                        # Increase experimental design and restart computations
+                        restart = true
+                        k = 3 # rescale factor according to [Blatman2008]
+                        println("Moments matrix is ill-conditioned. Restart computation with new sample size: $(k * sampleSize)) (Old size: $sampleSize)")
+                        sampleSize *= k   # TODO: build properly
+                    else
+                        # If conditioning is okay, update accuracy R² for backward step
+                        pce = leastSquares(Φ, y)
+                        R² = 1 - empError(y, Φ, pce)
+                    end
+
+
+                    # Backward step: Remove candidate polynomials one by one and compute the effect on Q²
+                    if !restart 
+                        println("Ap_new: ", Ap_new)
+                        Del = [] # polynomials to be discarded
+                        for a in Ap_new
+                            A = filter(e->e≠a,Ap_new)
+                            println("A = ", A)
+                            # New candiadte basis -> compute new determination coefficients
+                            Φ = [ evaluate(j, X[i], op) for i = 1:sampleSize, j in A]
+                            pce = leastSquares(Φ, y)
+                            R²new = 1 - empError(y, Φ, pce)
+
+                            # If decrease in accuracy is too small, throw polynomial away
+                            ΔR² = R² - R²new
+                            if ΔR² ≤ ϵ
+                                Del = Del ∪ a
+                                println("throw away a = ", a)
+                            end
+                        end
+
+                        # Update basis and compute errors for next iteration
+                        Ap = filter(e->e∉Del, Ap_new)
+                        Φ = [ evaluate(j, X[i], op) for i = 1:sampleSize, j in Ap]
+                        pce = leastSquares(Φ, y)
+                        println("pce: ", pce)
+                        R² = 1 - empError(y, Φ, pce)
+                        Q² = 1 - looError(y, Φ, pce)
+                        println("Q² (p=$p, j=$j): ", Q²)
+                    end
+                end
+                println()
+            end
+        end
+    end
+    
+    if Q² < Q²tgt
+        error("Computation reached max degree $pMax. However, accuracy is below target with Q² = $(Q²).")
+    else
+        println("Computation reached target accuracy with Q² = $(Q²) and max degree $p")
+        return Dict(:coeffs=>pce,
+                    :Ap=>Ap,
+                    :p=>p,
+                    :R²=>R²,
+                    :Q²=>Q²)
+    end
+end
+
 
 
 
