@@ -1,7 +1,7 @@
 module sparsePolyChaos
 
 using PolyChaos
-using LinearAlgebra: diag, cond
+using LinearAlgebra: diag, cond, norm, pinv
 
 include("error_estimation.jl")
 include("regression.jl")
