@@ -2,14 +2,15 @@ using sparsePolyChaos
 using PolyChaos
 
 # Example file for subspace pursuit algorithm
-K = 5 # SP hyper parameter default
+K = 2 # SP hyper parameter default
 maxDeg = 10 # max degree of full basis
 
 
 ### UNIVARIATE ###
 
 # 0. define sample model
-model(x) = x^10 - 45 * x^8 + 630 * x^6 - 3150 * x^4 + 4725 * x^2 - 945 # He10
+model(x) = x^7 - 21 * x^5 + 105 * x^3 - 105 * x + x^4 - 6 * x^2 + 3 # He7 + He4
+# model(x) = x^10 - 45 * x^8 + 630 * x^6 - 3150 * x^4 + 4725 * x^2 - 945 # He10
 
 # 1. setup basis
 op = GaussOrthoPoly(maxDeg)
@@ -23,7 +24,7 @@ Y = model.(X)
 Ψ = [evaluate(j, X[i], op) for i = 1:sampleSize, j = 0:maxDeg]
 
 # 4- run SP algo
-subspacePursuit(Ψ, Y, K)
+coefficients, regressors = subspacePursuit(Ψ, Y, K)
 
 
 ### MULTIVARIATE ###
