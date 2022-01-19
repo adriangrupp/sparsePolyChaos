@@ -31,11 +31,13 @@ function subspacePursuit(Ψ::AbstractMatrix{<:Real}, Y::AbstractVector{<:Real}, 
     max_iterations = P
     counter = 0
 
-    # S_old = sort(abs.(Ψ'*Y), rev=true) # Active set
-    S_old = sortperm(abs.(Ψ' * Y), rev=true)  # Indices of active set (K best polynomials)
+    S_old = sortperm(abs.(Ψ' * Y), rev = true)    # Indices of active set (K best polynomials)
     S_old = S_old[1:K]
-    c_old = leastSquares(Ψ[:, S_old], Y)         # PCE Coefficients for active basis
-    r_old = Y - (Ψ[:, S_old] * c_old)          # Residual between ED and PCE approx with active Set
+    c_old = leastSquares(Ψ[:, S_old], Y)        # PCE Coefficients for active basis
+    r_old = Y - (Ψ[:, S_old] * c_old)           # Residual between ED and PCE approx with active Set
+
+    S_new = []  # Iteration result
+    c_new = []  # Iteration result
 
     ## Main loop
     while true
@@ -48,25 +50,25 @@ function subspacePursuit(Ψ::AbstractMatrix{<:Real}, Y::AbstractVector{<:Real}, 
         c_temp = zeros(P)
         c_temp[[S_old; S_add]] = leastSquares(Ψ[:, [S_old; S_add]], Y) # PCE coefficients for 2K regressors
 
-        S_new = sortperm(abs.(c_temp), rev=true) # New active set with K new best regressors
+        S_new = sortperm(abs.(c_temp), rev = true) # New active set with K new best regressors
         S_new = S_new[1:K]
         c_new = leastSquares(Ψ[:, S_new], Y) # coefficients for new active set
-        r_new = Y - (Ψ[:, S_new] * c_new)          # Residual between ED and PCE approx with active Set
+        r_new = Y - (Ψ[:, S_new] * c_new) # Residual between ED and PCE approx with active Set
 
         # Check termination conditions
-        if counter == max_iterations
-            println("#SP: Reached maximum number of iterations ($max_iterations). STOP.")
-            break
-        end
         if all(sort(S_new) == sort(S_old))
             println("#SP: Set of regressors converged. STOP.")
-            break;
+            break
         end
         if norm(r_new) > norm(r_old)
             println("#SP: Last iteration deteriorated the solution. Taking previous solution. STOP.")
             S_new = S_old
             c_new = c_old
-            break;
+            break
+        end
+        if counter == max_iterations
+            println("#SP: Reached maximum number of iterations ($max_iterations). STOP.")
+            break
         end
 
         # Iteration continues: update values
@@ -76,7 +78,10 @@ function subspacePursuit(Ψ::AbstractMatrix{<:Real}, Y::AbstractVector{<:Real}, 
 
     end
 
-    # return
+    coeffs = zeros(P)
+    coeffs[S_new] = c_new
+
+    return coeffs, S_new
 end
 
 
