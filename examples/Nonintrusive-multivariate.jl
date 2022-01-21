@@ -94,6 +94,7 @@ X = sampleMeasure(nSamples, mop)
 # Evaluate model -> vector Y
 Y = model.(X)
 
+# TODO:
 # Build matrix Φ with ϕ(x(i))
 # Φ = Array{Float64}(undef, nSamples, maxdegree+1)
 # Φ = [ evaluate(j, X[i], op) for i = 1:nSamples, j = 0:maxdeg]
@@ -153,6 +154,7 @@ println("\t\t\t error std: \t $(error_std_intr)")
 println("\t\t\t error skew: \t $(error_skew_intr)\n")
 
 
+# TODO:
 # # MC moments
 # mean_mc, std_mc, skew_mc = mean(y_mc), std(y_mc), skewness(y_mc)
 # error_mean_mc = abs(mean_ana - mean_mc)

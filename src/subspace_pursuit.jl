@@ -13,8 +13,8 @@ Returns:
 """
 function subspacePursuit(Ψ::AbstractMatrix{<:Real}, Y::AbstractVector{<:Real}, K::Int)
     @assert size(Ψ, 1) == length(Y) "Dimension mismatch in matrix Ψ and ED vector Y."
-    N, P = size(Ψ)
 
+    N, P = size(Ψ)
     # Check size of K. Has to be: 2K < min{N,P}
     if K > floor(min(N / 2, P / 2))
         @warn("#SP: the specified K = $K is too large, set to ", floor(min(N / 2, P / 2)))
@@ -31,26 +31,32 @@ function subspacePursuit(Ψ::AbstractMatrix{<:Real}, Y::AbstractVector{<:Real}, 
     max_iterations = P
     counter = 0
 
-    S_old = sortperm(abs.(Ψ' * Y), rev = true)    # Indices of active set (K best polynomials)
+    S_old = sortperm(abs.(Ψ' * Y), rev = true) # Indices of active set (K best polynomials)
     S_old = S_old[1:K]
-    c_old = leastSquares(Ψ[:, S_old], Y)        # PCE Coefficients for active basis
-    r_old = Y - (Ψ[:, S_old] * c_old)           # Residual between ED and PCE approx with active Set
+    c_old = leastSquares(Ψ[:, S_old], Y)       # PCE Coefficients for active basis
+    r_old = Y - (Ψ[:, S_old] * c_old)          # Residual between ED and PCE approx with active Set
 
     S_new = []  # Iteration result
     c_new = []  # Iteration result
 
     ## Main loop
     while true
-        println("#SP: Iteration $counter. current regressor set: $S_old")
-        println("current residuals: $r_old")
         counter += 1
+        println("#SP: Iteration $counter. Old regressor set: $S_old")
+        # println("current residuals: $r_old")
 
         S_add = sortperm(abs.(Ψ' * r_old), rev = true) # Add K new regressors, best correlated with residual
+        # add = sort(abs.(Ψ' * r_old), rev = true) # Add K new regressors, best correlated with residual
+        # println("add: $add")
+        # println("S_add: $S_add")
         S_add = S_add[1:K]
         c_temp = zeros(P)
         c_temp[[S_old; S_add]] = leastSquares(Ψ[:, [S_old; S_add]], Y) # PCE coefficients for 2K regressors
 
         S_new = sortperm(abs.(c_temp), rev = true) # New active set with K new best regressors
+        # new = sort(abs.(Ψ' * r_old), rev = true) # Add K new regressors, best correlated with residual
+        # println("new: $new")
+        # println("S_new: $S_new")
         S_new = S_new[1:K]
         c_new = leastSquares(Ψ[:, S_new], Y) # coefficients for new active set
         r_new = Y - (Ψ[:, S_new] * c_new) # Residual between ED and PCE approx with active Set
@@ -78,9 +84,10 @@ function subspacePursuit(Ψ::AbstractMatrix{<:Real}, Y::AbstractVector{<:Real}, 
 
     end
 
+    # Postprocessing for hybrid, normalized and constant
+
     coeffs = zeros(P)
     coeffs[S_new] = c_new
-
     return coeffs, S_new
 end
 
