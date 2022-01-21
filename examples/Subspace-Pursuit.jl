@@ -1,15 +1,16 @@
 using sparsePolyChaos
 using PolyChaos
 
-# Example file for subspace pursuit algorithm
-maxDeg = 10 # max degree of full basis
+# Example file for subspace pursuit algorithm.
 
 
 ### UNIVARIATE ###
 
+maxDeg = 10 # max degree of full basis
+K = 2       # SP hyper parameter default
+ρ = 3       # ED-size factor
+
 function univariateSP()
-    K = 2       # SP hyper parameter default
-    ρ = 3       # ED-size factor
 
     # 0. define sample model
     model(x) = x^7 - 21 * x^5 + 105 * x^3 - 105 * x + x^5 - 10 * x^3 + 15 * x # He7 + He5
@@ -36,6 +37,10 @@ end
 ### MULTIVARIATE ###
 
 # Χ²- Distribution (quadratic model with k gaussian input uncertainties)
+maxDeg = 5 # max degree of full basis
+K = 20     # hyperparameter for SP
+k = 3      # degrees of freedom
+ρ = 3      # ED-size factor
 
 # Model equation: Y = X^2
 function model(X)
@@ -44,12 +49,8 @@ function model(X)
 end
 
 function multivariateSP()
-    K = 6 # hyperparameter for SP
-    k = 3 # degrees of freedom
-    Nrec = 20 # recurrence 
-
     # 1. Setup and compute multivariate basis
-    op = GaussOrthoPoly(maxDeg, addQuadrature = true)
+    op = GaussOrthoPoly(maxDeg, Nrec = 2 * maxDeg, addQuadrature = true)
     mop = MultiOrthoPoly([op for i in 1:k], maxDeg)
     ind = mop.ind
 
@@ -62,8 +63,25 @@ function multivariateSP()
     Ψ = evaluate(X, mop)' # Transpose due to switched dimensions in PolyChaos
 
     # 4. run SP algo
-    coefficients, regressors = subspacePursuit(Ψ, Y, K)
-    return coefficients, regressors
+    coeffs, regressors = subspacePursuit(Ψ, Y, K)
+
+
+    ## Analysis of results
+    println()
+
+    # Analytic moments
+    mean_ana = k
+    std_ana = sqrt(2 * k)
+
+    # Compare sparse moments to analytic moments
+    mean_sp = mean(coeffs, mop)
+    std_sp = std(coeffs, mop)
+    error_mean_sp = abs(mean_ana - mean_sp)
+    error_std_sp = abs(std_ana - std_sp)
+    print("Expected value:\t\t$(mean_ana) = $(mean_sp)\n")
+    print("\t\t\terror = $(error_mean_sp)\n")
+    print("Standard deviation:\t$(std_ana) = $(std_sp)\n")
+    print("\t\t\terror = $(error_std_sp)\n")
 end
 
 multivariateSP()
