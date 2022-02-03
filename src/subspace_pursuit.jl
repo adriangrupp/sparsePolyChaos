@@ -17,7 +17,7 @@ function subspacePursuit(Ψ::AbstractMatrix{<:Real}, Y::AbstractVector{<:Real}, 
     N, P = size(Ψ)
     # Check size of K. Has to be: 2K < min{N,P}
     if K > floor(min(N / 2, P / 2))
-        @warn("#SP: the specified K = $K is too large, set to ", floor(min(N / 2, P / 2)))
+        @warn("@SP: the specified K = $K is too large, set to ", floor(min(N / 2, P / 2)))
         K = floor(Int, min(N / 2, P / 2))
     end
 
@@ -33,6 +33,8 @@ function subspacePursuit(Ψ::AbstractMatrix{<:Real}, Y::AbstractVector{<:Real}, 
 
     S_old = sortperm(abs.(Ψ' * Y), rev = true) # Indices of active set (K best polynomials)
     S_old = S_old[1:K]
+    println("@SP: Initial regressor set: $S_old")
+
     c_old = leastSquares(Ψ[:, S_old], Y)       # PCE Coefficients for active basis
     r_old = Y - (Ψ[:, S_old] * c_old)          # Residual between ED and PCE approx with active Set
 
@@ -42,7 +44,6 @@ function subspacePursuit(Ψ::AbstractMatrix{<:Real}, Y::AbstractVector{<:Real}, 
     ## Main loop
     while true
         counter += 1
-        println("#SP: Iteration $counter. Old regressor set: $S_old")
         # println("current residuals: $r_old")
 
         S_add = sortperm(abs.(Ψ' * r_old), rev = true) # Add K new regressors, best correlated with residual
@@ -61,19 +62,21 @@ function subspacePursuit(Ψ::AbstractMatrix{<:Real}, Y::AbstractVector{<:Real}, 
         c_new = leastSquares(Ψ[:, S_new], Y) # coefficients for new active set
         r_new = Y - (Ψ[:, S_new] * c_new) # Residual between ED and PCE approx with active Set
 
+        println("@SP: Iteration $counter. New regressor set: $S_old")
+
         # Check termination conditions
         if all(sort(S_new) == sort(S_old))
-            println("#SP: Set of regressors converged. STOP.")
+            println("@SP: Set of regressors converged. STOP.")
             break
         end
         if norm(r_new) > norm(r_old)
-            println("#SP: Last iteration deteriorated the solution. Taking previous solution. STOP.")
+            println("@SP: Last iteration deteriorated the solution. Taking previous solution. STOP.")
             S_new = S_old
             c_new = c_old
             break
         end
         if counter == max_iterations
-            println("#SP: Reached maximum number of iterations ($max_iterations). STOP.")
+            println("@SP: Reached maximum number of iterations ($max_iterations). STOP.")
             break
         end
 
