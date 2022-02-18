@@ -62,7 +62,7 @@ function subspacePursuit(Ψ::AbstractMatrix{<:Real}, Y::AbstractVector{<:Real}, 
         c_new = leastSquares(Ψ[:, S_new], Y) # coefficients for new active set
         r_new = Y - (Ψ[:, S_new] * c_new) # Residual between ED and PCE approx with active Set
 
-        println("@SP: Iteration $counter. New regressor set: $S_old")
+        println("@SP: Finished iteration $counter. New regressor set: $S_new")
 
         # Check termination conditions
         if all(sort(S_new) == sort(S_old))
