@@ -66,17 +66,17 @@ function subspacePursuit(Ψ::AbstractMatrix{<:Real}, Y::AbstractVector{<:Real}, 
 
         # Check termination conditions
         if all(sort(S_new) == sort(S_old))
-            println("@SP: Set of regressors converged. STOP.")
+            println("@SP: Set of regressors converged. STOP.\n")
             break
         end
         if norm(r_new) > norm(r_old)
-            println("@SP: Last iteration deteriorated the solution. Taking previous solution. STOP.")
+            println("@SP: Last iteration deteriorated the solution. Taking previous solution. STOP.\n")
             S_new = S_old
             c_new = c_old
             break
         end
         if counter == max_iterations
-            println("@SP: Reached maximum number of iterations ($max_iterations). STOP.")
+            println("@SP: Reached maximum number of iterations ($max_iterations). STOP.\n")
             break
         end
 
