@@ -3,7 +3,7 @@
 
 # Normalized empirical error / generalization error (Blatman2009 - Dissertation)
 # nemError ∈ [0,1]
-function empError(Y::Vector{Float64}, Φ::Matrix{Float64}, pceCoeffs; adjusted = false)
+function empError(Y::AbstractVector{Float64}, Φ::AbstractMatrix{Float64}, pceCoeffs; adjusted = false)
     @assert length(Y) > 0           "Empty results vector Y"
     @assert length(Y) == size(Φ, 1) "Inconsistent number of elements"
     # TODO: Require column vectors
