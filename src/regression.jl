@@ -7,12 +7,16 @@ export leastSquares
 #     leastSquares(Φ, Y)
 # end
 
-# Ordinary least-squares regression
+"""
+Ordinary least-squares regression
+"""
 function leastSquares(Φ::AbstractMatrix{<:Real}, Y::AbstractVector{<:Real})
-    @assert size(Φ, 1) == length(Y) "Dimension mismatch in matrix Φ and observation vector Y."
-
-    # FUTURE: need to account for correlated data, if present
+    @assert size(Φ, 1) == length(Y) "Dimension mismatch in matrix Φ $size(Φ) and observation vector Y ($length(Y))."
     
+    if size(Φ,1) <= size(Φ,2)
+        @warn("@leastSquares: System is underdetermined! N:$(size(Φ,1)), P = $(size(Φ,2)). Results may be wrong.")
+    end
+
     coefficients = zeros(size(Y))
 
     condition = 1/cond(Φ) # Matrix condition number

@@ -32,10 +32,12 @@ function empError(Y::Vector{Float64}, Φ::Matrix{Float64}, pceCoeffs; adjusted =
 end
 
 
-
-# Leave-one-out cross-validation error (Blatman2009 - Dissertation)
-# Note: looError ∈ [0,∞]. If > 1, average modeling would be better.
-function looError(Y::Vector{Float64}, Φ::Matrix{Float64}, pceCoeffs)
+"""
+Leave-one-out cross-validation error (Blatman2009 - Dissertation)
+Note: looError ∈ [0,∞]. If > 1, average modeling would be better.
+Input: Y - Experimental design, Φ - design matrix, pceCoeffs - estimated PCE coefficients
+"""
+function looError(Y::AbstractVector{Float64}, Φ::AbstractMatrix{Float64}, pceCoeffs)
     @assert length(Y) > 0           "Empty results vector Y"
     @assert length(Y) == size(Φ, 1) "Inconsistent number of elements"
 
