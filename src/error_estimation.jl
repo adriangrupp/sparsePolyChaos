@@ -51,7 +51,7 @@ function looError(Y::AbstractVector{Float64}, Φ::AbstractMatrix{Float64}, pceCo
     # h-factor for validation sets
     M = Φ * inv(Φ' * Φ) * Φ' #TODO: fix conditioning
     N = size(M, 1)
-    h = ones(N) - diag(M)
+    h = diag(M)
 
     # Empirical variance of sampling evaluation (true model)
     n = length(Y)
@@ -60,13 +60,6 @@ function looError(Y::AbstractVector{Float64}, Φ::AbstractMatrix{Float64}, pceCo
 
     # Compute squared error with h-factor
     loo = 1 / N * sum(((Y[i] - Y_Pce[i]) / (1 - h[i]))^2 for i in 1:N)
-
-    ## Debuging
-    # println("M: ", M)
-    # println("Y - Y_Pce: ", Y - Y_Pce)
-    # println("h: ", h)
-    # println("varY: ", varY)
-    # println("looError: ", loo)
 
     # Normalize error with variance. Set error to 0, if var is 0
     looError = varY == 0 ? 0 : loo / varY
